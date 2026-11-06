@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>qqTimer Modern - High-Precision Speedcubing Timer</title>
+  <meta name="description" content="Modern, responsive speedcubing timer with glassmorphism UI, WCA inspection, high-precision timing, and full statistics.">
+  
+  <!-- Modern Stylesheet -->
+  <link rel="stylesheet" href="./qqTimer_files/modern.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%2338bdf8'/><path d='M30 30h40v40H30z' fill='%230f172a'/><circle cx='50' cy='50' r='10' fill='%2310b981'/></svg>">
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- Header / Navigation Bar -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-logo" style="font-size: 0.95rem; font-weight: 800;">3x3</div>
+        <div class="brand-text">
+          <span class="brand-title">qqTimer</span>
+          <span class="brand-badge">3x3x3 Edition</span>
+        </div>
+      </div>
+
+      <!-- 3x3 Mode & Session Controls -->
+      <div class="control-group">
+        <div class="select-wrapper">
+          <select id="puzzleModeSelect" title="Select 3x3 Practice Mode">
+            <option value="333" selected>3x3x3 (WCA Normal)</option>
+            <option value="pll">3x3x3 PLL Practice</option>
+            <option value="ll">3x3x3 Last Layer (LL)</option>
+            <option value="f2l">3x3x3 F2L Practice</option>
+            <option value="2gen">3x3x3 2-Gen &lt;R, U&gt;</option>
+            <option value="roux">3x3x3 Roux &lt;M, U&gt;</option>
+            <option value="333ori">3x3x3 + Orientation</option>
+            <option value="333o">3x3x3 Old Style (25 moves)</option>
+          </select>
+        </div>
+        <div class="select-wrapper">
+          <select id="sessionSelect" title="Select Session (1-25)">
+            <!-- Populated 1-25 -->
+          </select>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="header-actions">
+        <button id="btnCheatSheet" class="btn" title="CFOP 해법 치트시트 [단축키 1:F2L, 2:OLL, 3:PLL]" style="display: flex; align-items: center; gap: 0.45rem; padding: 0.35rem 0.75rem; border-color: rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.1);">
+          <span style="font-size: 0.95rem;">💡</span>
+          <span style="font-weight: 600; color: #38bdf8;">해법 치트시트</span>
+          <span class="key-badge" style="background: rgba(56, 189, 248, 0.25); color: #38bdf8; font-size: 0.65rem;">1, 2, 3</span>
+        </button>
+        <button id="btnSettings" class="btn btn-icon" title="Timer Settings" aria-label="Settings">⚙</button>
+        <button id="btnShortcuts" class="btn btn-icon" title="Keyboard Shortcuts" aria-label="Shortcuts">⌨</button>
+      </div>
+    </header>
+
+    <!-- Scramble Display Area -->
+    <section class="scramble-section">
+      <div class="scramble-header">
+        <span>⚡ Scramble</span>
+      </div>
+      <div id="scrambleDisplay" class="scramble-text">Generating scramble...</div>
+      <div class="scramble-actions">
+        <button id="btnNextScramble" class="btn scramble-btn" title="Generate New Scramble">Next (Space)</button>
+        <button id="btnCopyScramble" class="btn scramble-btn" title="Copy scramble notation">Copy</button>
+        <button id="btnLastScramble" class="btn scramble-btn" title="View previous scramble">Previous</button>
+      </div>
+    </section>
+
+    <!-- Main Dashboard Grid -->
+    <main class="main-dashboard">
+      
+      <!-- Left Panel: Solves History -->
+      <section class="panel solves-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>Solves</span>
+            <span id="solvesCount" class="solves-summary">0/0</span>
+          </div>
+          <div style="display: flex; gap: 0.4rem;">
+            <button id="btnExport" class="btn" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;">Export</button>
+            <button id="btnImport" class="btn" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;">Import</button>
+            <button id="btnResetSession" class="btn" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; color: var(--accent-crimson);" title="Reset current session">Reset</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div id="solvesList" class="solves-list">
+            <!-- Solves items populated dynamically -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Center Stage: Timer Display & Controls -->
+      <section id="timerStage" class="timer-stage state-idle" tabindex="0" title="Click or Press Space to Start">
+        <div id="timerDisplay" class="timer-time">0.00</div>
+        <div id="timerHint" class="timer-status-hint">
+          <span class="key-badge">SPACE</span> Hold to start
+        </div>
+
+        <!-- Quick Post-Solve Penalty Toolbar -->
+        <div id="quickPenaltyBar" class="penalty-bar" style="display: none;">
+          <button id="btnPenaltyOk" class="penalty-btn active-ok">OK</button>
+          <button id="btnPenaltyPlus2" class="penalty-btn">+2</button>
+          <button id="btnPenaltyDnf" class="penalty-btn">DNF</button>
+          <button id="btnLeaveComment" class="penalty-btn" style="margin-left: 0.5rem;">Note</button>
+        </div>
+      </section>
+
+      <!-- Right Panel: Real-time Statistics -->
+      <section class="panel stats-panel">
+        <div class="panel-header">
+          <div class="panel-title">Statistics</div>
+        </div>
+        <div class="panel-body">
+          <div class="stats-grid">
+            <div class="stat-card" id="cardSingle">
+              <span class="stat-label">Best Single</span>
+              <span id="statBestSingle" class="stat-value" style="color: var(--accent-emerald);">--</span>
+              <span class="stat-sub">Worst: <span id="statWorstSingle">--</span></span>
+            </div>
+            <div class="stat-card" id="cardAo5" title="Click to inspect constituent solves">
+              <span class="stat-label">Ao5 <span style="font-size: 0.65rem; color: var(--accent-cyan);">Inspect ↗</span></span>
+              <span id="statAo5Cur" class="stat-value">--</span>
+              <span class="stat-sub">Best: <span id="statAo5Best">--</span></span>
+            </div>
+            <div class="stat-card" id="cardAo12" title="Click to inspect constituent solves">
+              <span class="stat-label">Ao12 <span style="font-size: 0.65rem; color: var(--accent-cyan);">Inspect ↗</span></span>
+              <span id="statAo12Cur" class="stat-value">--</span>
+              <span class="stat-sub">Best: <span id="statAo12Best">--</span></span>
+            </div>
+            <div class="stat-card" id="cardMo3" title="Click to inspect constituent solves">
+              <span class="stat-label">Mo3</span>
+              <span id="statMo3Cur" class="stat-value">--</span>
+              <span class="stat-sub">Best: <span id="statMo3Best">--</span></span>
+            </div>
+            <div class="stat-card" id="cardSessAvg">
+              <span class="stat-label">Session Avg</span>
+              <span id="statSessAvg" class="stat-value">--</span>
+              <span class="stat-sub">Mean: <span id="statSessMean">--</span></span>
+            </div>
+          </div>
+
+          <!-- Average Breakdown Drawer -->
+          <div id="avgInspection" class="avg-inspection-card" style="display: none;">
+            <div class="avg-inspection-header">
+              <span id="avgInspectionTitle">Average Details</span>
+              <button id="btnCloseAvgInspection" class="btn" style="padding: 2px 7px; font-size: 0.7rem;">✕</button>
+            </div>
+            <div id="avgInspectionList" class="avg-solves-flow"></div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Modal: Settings -->
+    <div id="modalSettings" class="modal-overlay">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-title">Timer Settings</div>
+          <button class="btn modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="setting-item">
+            <div class="setting-label">
+              <span class="setting-name">WCA 15s Inspection</span>
+              <span class="setting-desc">15-second countdown with warning sound at 8s & 12s</span>
+            </div>
+            <input type="checkbox" id="settingInspection" style="width: 20px; height: 20px; cursor: pointer;">
+          </div>
+          <div class="setting-item">
+            <div class="setting-label">
+              <span class="setting-name">Hold to Start Duration</span>
+              <span class="setting-desc">Milliseconds spacebar must be held before timer becomes ready</span>
+            </div>
+            <select id="settingHoldTime">
+              <option value="0">Instant (0ms)</option>
+              <option value="150">150ms</option>
+              <option value="300" selected>300ms (Default)</option>
+              <option value="500">500ms (WCA Stackmat)</option>
+            </select>
+          </div>
+          <div class="setting-item">
+            <div class="setting-label">
+              <span class="setting-name">Timer Precision</span>
+              <span class="setting-desc">Display time format resolution</span>
+            </div>
+            <select id="settingPrecision">
+              <option value="2" selected>0.01 sec (1/100s)</option>
+              <option value="3">0.001 sec (1/1000s)</option>
+            </select>
+          </div>
+          <div class="setting-item">
+            <div class="setting-label">
+              <span class="setting-name">Sound Effects</span>
+              <span class="setting-desc">Audio cues for Ready state and Inspection warnings</span>
+            </div>
+            <input type="checkbox" id="settingSound" checked style="width: 20px; height: 20px; cursor: pointer;">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary modal-close">Done</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Keyboard Shortcuts -->
+    <div id="modalShortcuts" class="modal-overlay">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-title">Keyboard Shortcuts</div>
+          <button class="btn modal-close">✕</button>
+        </div>
+        <div class="modal-body" style="font-size: 0.9rem;">
+          <div style="display: flex; justify-content: space-between; padding: 0.4rem 0;">
+            <span class="key-badge">SPACE (Hold & Release)</span>
+            <span>Start Timer</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 0.4rem 0;">
+            <span class="key-badge">ANY KEY</span>
+            <span>Stop Running Timer</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 0.4rem 0;">
+            <span class="key-badge">1 / Num 1</span>
+            <span>F2L 해법 치트시트 토글</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 0.4rem 0;">
+            <span class="key-badge">2 / Num 2</span>
+            <span>OLL 해법 치트시트 토글</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 0.4rem 0;">
+            <span class="key-badge">3 / Num 3</span>
+            <span>PLL 해법 치트시트 토글</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 0.4rem 0;">
+            <span class="key-badge">ESC / Space</span>
+            <span>Cancel solve / 치트시트 즉시 닫기</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 0.4rem 0;">
+            <span class="key-badge">TOUCH / TAP</span>
+            <span>Touchscreen mobile timer support</span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary modal-close">Got it</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: CFOP Solution Cheat Sheet -->
+    <div id="modalCheatSheet" class="modal-overlay">
+      <div class="modal-card cheat-sheet-modal">
+        <!-- Header -->
+        <div class="cheat-sheet-header">
+          <div class="cheat-sheet-header-left">
+            <!-- Upper Left Live Running Timer Display -->
+            <div id="cheatSheetLiveTimer" class="cheat-sheet-live-timer" title="실시간 타이머 (측정 중 실시간 시간 표시)">
+              <div class="live-timer-dot" id="cheatSheetLiveDot"></div>
+              <div class="live-timer-body">
+                <span class="live-timer-status" id="cheatSheetLiveStatus">TIMER</span>
+                <span class="live-timer-time" id="cheatSheetLiveTime">0.00</span>
+              </div>
+            </div>
+
+            <div class="cheat-sheet-title-group">
+              <span class="cheat-sheet-badge">CFOP CHEAT SHEET</span>
+              <h2 id="cheatSheetTitle" class="cheat-sheet-title">PLL Algorithms (21 Cases)</h2>
+            </div>
+          </div>
+
+          <!-- Main Stage Tabs (F2L:1, OLL:2, PLL:3) -->
+          <div class="stage-tabs">
+            <button class="stage-tab-btn" data-stage="F2L" title="단축키 1 또는 Keypad 1">
+              <span class="tab-key">1</span>
+              <span>F2L</span>
+              <span class="tab-count">41</span>
+            </button>
+            <button class="stage-tab-btn" data-stage="OLL" title="단축키 2 또는 Keypad 2">
+              <span class="tab-key">2</span>
+              <span>OLL</span>
+              <span class="tab-count">57</span>
+            </button>
+            <button class="stage-tab-btn active" data-stage="PLL" title="단축키 3 또는 Keypad 3">
+              <span class="tab-key">3</span>
+              <span>PLL</span>
+              <span class="tab-count">21</span>
+            </button>
+          </div>
+
+          <button class="modal-close" id="btnCloseCheatSheet" title="닫기 (ESC / Space)">✕</button>
+        </div>
+
+        <!-- Sub-navigation & Controls Bar -->
+        <div class="cheat-sheet-toolbar">
+          <div id="cheatSheetSubTabs" class="sub-tabs-container">
+            <!-- Dynamically populated page / group tabs -->
+          </div>
+
+          <div class="cheat-sheet-search-wrap">
+            <input type="text" id="cheatSheetSearch" placeholder="🔍 공식 또는 이름 검색..." autocomplete="off">
+            <button id="btnClearSearch" class="btn-clear-search" style="display: none;">✕</button>
+          </div>
+        </div>
+
+        <!-- Cards Grid Container -->
+        <div class="cheat-sheet-body">
+          <div id="cheatSheetGrid" class="cheat-sheet-grid">
+            <!-- Solution cards populated by app.js -->
+          </div>
+        </div>
+
+        <!-- Footer Shortcuts Bar -->
+        <div class="cheat-sheet-footer">
+          <div class="footer-shortcuts">
+            <span class="shortcut-tag"><kbd>1</kbd> F2L</span>
+            <span class="shortcut-tag"><kbd>2</kbd> OLL</span>
+            <span class="shortcut-tag"><kbd>3</kbd> PLL</span>
+            <span class="shortcut-tag"><kbd>Q~T</kbd> / <kbd>Num 4~8</kbd> 하위 페이지 (왼손/키패드)</span>
+            <span class="shortcut-tag"><kbd>←</kbd><kbd>→</kbd> 페이지 이동</span>
+            <span class="shortcut-tag"><kbd>Space</kbd> / <kbd>ESC</kbd> 닫기</span>
+          </div>
+          <div class="footer-tip">💡 카드를 클릭하면 공식 텍스트가 클립보드에 복사됩니다.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Solve Details -->
+    <div id="modalSolveDetails" class="modal-overlay">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div id="modalSolveTitle" class="modal-title">Solve Details</div>
+          <button class="btn modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <div style="text-align: center; margin-bottom: 0.75rem;">
+            <span id="detailTime" style="font-family: var(--font-mono); font-size: 2.8rem; font-weight: 800; color: var(--accent-cyan);">--</span>
+          </div>
+          <div>
+            <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.35rem;">SCRAMBLE</div>
+            <div id="detailScramble" style="font-family: var(--font-mono); font-size: 0.95rem; background: rgba(30, 41, 59, 0.6); padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); word-break: break-word;"></div>
+          </div>
+          <div>
+            <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.35rem;">COMMENT / NOTE</div>
+            <input type="text" id="detailCommentInput" placeholder="Add note (e.g. PLL skip, easy cross...)" style="width: 100%;">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn modal-close">Cancel</button>
+          <button id="btnSaveComment" class="btn btn-primary">Save Note</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Import / Export -->
+    <div id="modalImportExport" class="modal-overlay">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div id="importExportTitle" class="modal-title">Import / Export Solves</div>
+          <button class="btn modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size: 0.85rem; color: var(--text-muted);">Paste or copy solves list in standard format (e.g. <code>1. 12.34 [comment] scramble</code> or <code>12.34, 15.22</code>):</p>
+          <textarea id="importExportText" rows="10" style="width: 100%; background: rgba(30, 41, 59, 0.7); border: 1px solid var(--border-glass-bright); border-radius: var(--radius-md); color: #fff; font-family: var(--font-mono); padding: 0.85rem; font-size: 0.85rem; resize: vertical;"></textarea>
+        </div>
+        <div class="modal-footer">
+          <button class="btn modal-close">Close</button>
+          <button id="btnExecuteImport" class="btn btn-primary">Import to Session</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">Toast Message</div>
+
+  </div>
+
+  <!-- CFOP Solutions Database (Instant local file / server support) -->
+  <script src="./solve/solutions_data.js"></script>
+
+  <!-- 3x3 Solver & Scrambler -->
+  <script src="./qqTimer_files/scramble_333_edit.js"></script>
+  <script src="./qqTimer_files/scramblers.js"></script>
+
+  <!-- QQTimer Modular Core & Features (Zero-build, 100% file:// & GitHub Pages compatible) -->
+  <script src="./qqTimer_files/js/audio.js"></script>
+  <script src="./qqTimer_files/js/storage.js"></script>
+  <script src="./qqTimer_files/js/stats.js"></script>
+  <script src="./qqTimer_files/js/timer.js"></script>
+  <script src="./qqTimer_files/js/cheatsheet.js"></script>
+  <script src="./qqTimer_files/js/importExport.js"></script>
+
+  <!-- Modern Application & UI Orchestrator -->
+  <script src="./qqTimer_files/app.js"></script>
+</body>
+</html>
